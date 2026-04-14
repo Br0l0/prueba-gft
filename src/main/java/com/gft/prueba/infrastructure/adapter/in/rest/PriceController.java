@@ -3,6 +3,7 @@ package com.gft.prueba.infrastructure.adapter.in.rest;
 import com.gft.prueba.application.port.in.GetApplicablePriceUseCase;
 import com.gft.prueba.domain.model.Price;
 import com.gft.prueba.infrastructure.adapter.in.rest.dto.PriceResponse;
+import com.gft.prueba.infrastructure.adapter.in.rest.mapper.PriceResponseMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,9 +25,12 @@ import java.time.LocalDateTime;
 public class PriceController {
 
     private final GetApplicablePriceUseCase getApplicablePriceUseCase;
+    private final PriceResponseMapper priceResponseMapper;
 
-    public PriceController(GetApplicablePriceUseCase getApplicablePriceUseCase) {
+    public PriceController(GetApplicablePriceUseCase getApplicablePriceUseCase,
+                           PriceResponseMapper priceResponseMapper) {
         this.getApplicablePriceUseCase = getApplicablePriceUseCase;
+        this.priceResponseMapper = priceResponseMapper;
     }
 
     @GetMapping
@@ -40,18 +44,6 @@ public class PriceController {
             @RequestParam @Positive Long brandId) {
 
         Price price = getApplicablePriceUseCase.getApplicablePrice(applicationDate, productId, brandId);
-        return ResponseEntity.ok(toResponse(price));
-    }
-
-    private PriceResponse toResponse(Price price) {
-        return new PriceResponse(
-                price.productId(),
-                price.brandId(),
-                price.priceList(),
-                price.startDate(),
-                price.endDate(),
-                price.price(),
-                price.currency()
-        );
+        return ResponseEntity.ok(priceResponseMapper.toResponse(price));
     }
 }
