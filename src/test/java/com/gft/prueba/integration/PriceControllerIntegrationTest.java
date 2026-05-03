@@ -8,6 +8,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -133,6 +135,66 @@ class PriceControllerIntegrationTest {
         .then()
                 .statusCode(400)
                 .body("code", equalTo("INVALID_REQUEST"));
+    }
+
+    @Test
+    void rejectsMissingRequiredParameters() {
+        given()
+                .queryParam("productId", "35455")
+                .queryParam("brandId", "1")
+        .when()
+                .get("/api/v1/prices")
+        .then()
+                .statusCode(400)
+                .body("code", equalTo("INVALID_REQUEST"));
+    }
+
+    @Test
+    void returnsCorrelationIdHeader() {
+        given()
+                .header("X-Correlation-Id", "test-correlation-id")
+                .queryParam("applicationDate", "2020-06-14T10:00:00")
+                .queryParam("productId", "35455")
+                .queryParam("brandId", "1")
+        .when()
+                .get("/api/v1/prices")
+        .then()
+                .statusCode(200)
+                .header("X-Correlation-Id", equalTo("test-correlation-id"));
+    }
+
+    @Test
+    void replacesInvalidCorrelationIdHeader() {
+        given()
+                .header("X-Correlation-Id", "invalid header value")
+                .queryParam("applicationDate", "2020-06-14T10:00:00")
+                .queryParam("productId", "35455")
+                .queryParam("brandId", "1")
+        .when()
+                .get("/api/v1/prices")
+        .then()
+                .statusCode(200)
+                .header("X-Correlation-Id", not(equalTo("invalid header value")));
+    }
+
+    @Test
+    void exposesHealthEndpointForOperationalMonitoring() {
+        given()
+        .when()
+                .get("/actuator/health")
+        .then()
+                .statusCode(200)
+                .body("status", notNullValue());
+    }
+
+    @Test
+    void exposesMetricsEndpointForOperationalMonitoring() {
+        given()
+        .when()
+                .get("/actuator/metrics")
+        .then()
+                .statusCode(200)
+                .body("names", notNullValue());
     }
 
     @Test

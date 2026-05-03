@@ -6,6 +6,8 @@ spring:
     driverClassName: org.h2.Driver
     username: sa
     password:
+    hikari:
+      connection-timeout: 2000
   jpa:
     hibernate:
       ddl-auto: none
@@ -13,14 +15,35 @@ spring:
     show-sql: false
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
 
 server:
   port: 8080
+  tomcat:
+    connection-timeout: 2s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
 springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  h2:
+    console:
+      enabled: true

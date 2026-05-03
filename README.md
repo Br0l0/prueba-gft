@@ -12,8 +12,10 @@ La idea es sencilla: dada una fecha de aplicación, un `productId` y un `brandId
 - Spring Web
 - Spring Validation
 - Spring Data JPA
+- Spring Boot Actuator
 - H2 en memoria
 - springdoc-openapi
+- Spring Retry
 - JUnit 5
 - Mockito
 - RestAssured
@@ -79,6 +81,12 @@ En Windows:
 mvnw.cmd spring-boot:run
 ```
 
+Para habilitar la consola H2 en local:
+
+```bash
+mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=local
+```
+
 La aplicación arranca en:
 
 ```text
@@ -130,11 +138,15 @@ La aplicación usa H2 en memoria. El esquema y los datos iniciales se cargan al 
 - `src/main/resources/schema.sql`
 - `src/main/resources/data.sql`
 
+La tabla `prices` incluye el índice compuesto `idx_prices_lookup`, orientado al patrón de búsqueda principal por marca, producto, rango de fechas y prioridad.
+
 Consola H2:
 
 ```text
 http://localhost:8080/h2-console
 ```
+
+La consola H2 solo se habilita con el perfil `local`.
 
 Datos de conexión:
 
@@ -158,6 +170,15 @@ El contrato OpenAPI se genera desde la aplicación y se expone en:
 http://localhost:8080/api-docs
 ```
 
+## Observabilidad y resiliencia
+
+La aplicación añade endurecimiento operacional mínimo:
+
+- Timeouts acotados en Tomcat, Hikari y la transacción de lectura.
+- Retry limitado solo ante errores transitorios de acceso a datos.
+- Actuator expone `/actuator/health` y `/actuator/metrics`.
+- Logs estructurados por request con `X-Correlation-Id`.
+
 ## Tests
 
 Para ejecutar la suite completa:
@@ -177,7 +198,12 @@ La suite incluye:
 - Tests unitarios del caso de uso con el puerto de salida simulado.
 - Tests funcionales con RestAssured levantando la aplicación en un puerto aleatorio.
 - Test de persistencia para validar el desempate por `startDate` cuando la prioridad empata.
+- Test de persistencia para validar el índice de consulta.
+- Test de persistencia con volumen de datos.
 - Validación de errores `400` y `404`.
+- Validación de parámetro obligatorio ausente como caso KO.
+- Validación de `X-Correlation-Id`, sanitización de valores inválidos y endpoints de salud/métricas.
+- Validación de retry acotado ante errores transitorios de acceso a datos.
 - Validación de que el contrato OpenAPI se expone correctamente.
 
 Casos funcionales obligatorios cubiertos:
@@ -218,3 +244,5 @@ docker run --rm -p 8080:8080 pricing-api
 - Hay un único caso de uso: obtener el precio aplicable.
 - La selección por prioridad se delega en la consulta de base de datos para evitar lógica duplicada.
 - El contrato OpenAPI se genera con springdoc para evitar desalineaciones con el controlador.
+- La consola H2 queda limitada al perfil `local`.
+- No he añadido circuit-breakers, bulkheads, rate limiting ni caché porque no hay integraciones externas ni un caso real que lo justifique en esta prueba.
